@@ -392,8 +392,6 @@ This course is being followed primarily through Corey Schafer's FastAPI tutorial
 * [ ] JWT
 * [ ] Dependency injection
 * [ ] Error handling
-* [ ] Testing
-* [ ] Final project
 
 ---
 

@@ -97,4 +97,4 @@ def validation_exception_handler(request: Request, exception: RequestValidationE
             "message": "Invalid request. Please check your input and try again.",
         },
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-    )
+    )  

@@ -1,423 +1,228 @@
-# FastAPI Tutorial — Video 4: Pydantic Schemas
+# FastAPI Tutorial — Video 5: Database
 
-## 1. What is Pydantic?
+## Overview
+This part introduces database integration into the FastAPI application using SQLAlchemy.
 
-Pydantic is used in FastAPI for **data validation and data modeling**.
+### Topics
+- SQLAlchemy and ORM
+- Database engine
+- Declarative Base
+- Database sessions
+- FastAPI database dependency
+- SQLAlchemy models
+- `Mapped`
+- `mapped_column`
+- `ForeignKey`
+- Relationships
+- Pydantic schemas with database models
+- `ConfigDict(from_attributes=True)`
+- Debugging import and syntax errors
 
-It helps with:
-- Validating request data
-- Defining the expected structure of data
-- Type validation and conversion
-- Generating schemas in Swagger UI
+## Project Structure
 
----
-
-## 2. BaseModel
-
-Pydantic models inherit from `BaseModel`.
-
-```python
-from pydantic import BaseModel
-
-class PostBase(BaseModel):
-    title: str
-    content: str
-    author: str
+```text
+05-Database/
+├── main.py
+├── database.py
+├── models.py
+├── schemas.py
+├── templates/
+└── static/
 ```
 
----
-
-## 3. Field Validation
-
-`Field()` adds validation rules to model fields.
-
-```python
-from pydantic import BaseModel, Field
-
-class PostBase(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
-    content: str = Field(min_length=1)
-    author: str = Field(min_length=1, max_length=50)
-```
-
-| Field | Rule |
+| File | Purpose |
 |---|---|
-| title | 1–100 characters |
-| content | At least 1 character |
-| author | 1–50 characters |
+| `main.py` | FastAPI application and routes |
+| `database.py` | Database engine, Base, session/dependency setup |
+| `models.py` | SQLAlchemy database models |
+| `schemas.py` | Pydantic request/response schemas |
 
----
+## SQLAlchemy
 
-## 4. PostBase
+SQLAlchemy is a Python SQL toolkit and ORM. An ORM allows Python classes to represent database tables.
 
-`PostBase` contains the fields common to posts:
-
-```python
-class PostBase(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
-    content: str = Field(min_length=1)
-    author: str = Field(min_length=1, max_length=50)
+```text
+Python Class → SQLAlchemy ORM → Database Table
 ```
 
-It is used as a base class for other schemas.
+## Declarative Base
 
----
-
-## 5. PostCreate
+SQLAlchemy models inherit from a common base:
 
 ```python
-class PostCreate(PostBase):
+class Base(DeclarativeBase):
     pass
 ```
 
-`PostCreate` inherits:
-- `title`
-- `content`
-- `author`
-
-It represents the data expected when **creating a post**.
-
-`pass` means no additional fields are added.
-
----
-
-## 6. PostResponse
+Then in `models.py`:
 
 ```python
-class PostResponse(PostBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    date_posted: str
+from database import Base
 ```
 
-It contains:
+and models inherit from `Base`.
 
-```text
-title
-content
-author
-id
-date_posted
-```
+## Database Session
 
-The `id` and `date_posted` fields can be returned by the server rather than supplied when creating the post.
-
----
-
-## 7. ConfigDict
+A SQLAlchemy `Session` is used for database operations such as querying, adding, updating, deleting, and committing records.
 
 ```python
-from pydantic import ConfigDict
+from sqlalchemy.orm import Session
 ```
 
-The response schema uses:
+FastAPI can provide a session to an endpoint through a dependency.
+
+## SQLAlchemy Models
+
+Modern SQLAlchemy uses:
 
 ```python
-model_config = ConfigDict(from_attributes=True)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 ```
-
-`from_attributes=True` allows Pydantic to read values from object attributes, which is useful when working with ORM/database objects.
-
----
-
-## 8. Schema Inheritance
-
-The structure is:
-
-```text
-              PostBase
-             /        \
-            /          \
-     PostCreate     PostResponse
-                       |
-                 id: int
-                 date_posted: str
-```
-
-This avoids repeating common fields.
-
----
-
-## 9. Request Body
-
-`POST /api/posts` accepts JSON based on `PostCreate`.
 
 Example:
 
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
+```python
+id: Mapped[int] = mapped_column(primary_key=True)
 ```
 
-The client provides:
+### `Mapped`
+Represents a SQLAlchemy-mapped Python attribute.
+
+### `mapped_column()`
+Configures a database column.
+
+### `ForeignKey`
+Connects a column to another table:
+
+```python
+ForeignKey("users.id")
+```
+
+### `relationship()`
+Defines relationships between SQLAlchemy models.
+
+## Pydantic vs SQLAlchemy
+
+### SQLAlchemy model
+Represents database data:
 
 ```text
-title
-content
-author
+Database ↔ SQLAlchemy Model
 ```
 
----
+### Pydantic schema
+Represents API input/output:
 
-## 10. Response Schema
-
-A response can contain:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User",
-  "id": 3,
-  "date_posted": "September 15, 2026"
-}
+```text
+Client ↔ Pydantic Schema
 ```
 
-The exact response depends on the endpoint implementation.
-
----
-
-## 11. FastAPI + Pydantic Flow
+Overall:
 
 ```text
 Client
-   ↓
-JSON Request
-   ↓
+  ↓
+Pydantic Schema
+  ↓
 FastAPI
-   ↓
-PostCreate
-   ↓
-Pydantic Validation
-   ↓
-Endpoint
-   ↓
-Response
+  ↓
+SQLAlchemy Model
+  ↓
+Database
 ```
 
-FastAPI uses the Pydantic schema to understand and validate the request body.
+## `from_attributes=True`
 
----
+The response schema can contain:
 
-## 12. Swagger UI
-
-Open:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Swagger UI automatically displays the request and response schemas.
-
-For `POST /api/posts`, the request body can look like:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-The generated response schema can include:
-
-```text
-title
-content
-author
-id
-date_posted
-```
-
----
-
-## 13. 422 Validation Error
-
-FastAPI commonly returns:
-
-```text
-422 Unprocessable Content
-```
-
-when request data cannot be processed.
-
-### Pydantic validation error
-
-Examples:
-- Required field missing
-- String too short
-- String too long
-
-### JSON decoding error
-
-An error such as:
-
-```text
-type: json_invalid
-msg: JSON decode error
-ctx: Expecting value
-```
-
-means FastAPI could not decode the request body as valid JSON.
-
-These are different from Pydantic field-validation errors.
-
-A valid JSON body is:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
----
-
-## 14. Important Import Error
-
-`main.py` previously tried to import:
-
-```python
-from schemas import Post, PostCreate, PostResponse
-```
-
-But the current `schemas.py` defines:
-
-```text
-PostBase
-PostCreate
-PostResponse
-```
-
-There is no `Post` class.
-
-Therefore importing `Post` causes:
-
-```text
-ImportError: cannot import name 'Post' from 'schemas'
-```
-
-Always make sure the names imported in `main.py` match the classes actually defined in `schemas.py`.
-
----
-
-## 15. Complete schemas.py
-
-```python
-from pydantic import BaseModel, ConfigDict, Field
-
-
-class PostBase(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
-    content: str = Field(min_length=1)
-    author: str = Field(min_length=1, max_length=50)
-
-
-class PostCreate(PostBase):
-    pass
-
-
-class PostResponse(PostBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    date_posted: str
-```
-
----
-
-## 16. Why Separate Create and Response Schemas?
-
-### `PostCreate`
-
-Used for incoming data:
-
-```text
-title
-content
-author
-```
-
-### `PostResponse`
-
-Used for outgoing data:
-
-```text
-title
-content
-author
-id
-date_posted
-```
-
-Separating them makes the API structure clearer and prevents clients from having to provide fields generated by the server.
-
----
-
-## 17. Quick Revision
-
-**Pydantic:** Data validation and modeling library used by FastAPI.
-
-**BaseModel:**
-```python
-class PostBase(BaseModel):
-```
-
-**Field:**
-```python
-Field(min_length=1, max_length=100)
-```
-
-**Create schema:**
-```python
-class PostCreate(PostBase):
-    pass
-```
-
-**Response schema:**
-```python
-class PostResponse(PostBase):
-    id: int
-    date_posted: str
-```
-
-**Model configuration:**
 ```python
 model_config = ConfigDict(from_attributes=True)
 ```
 
-**Swagger UI:**
+This allows Pydantic to read values from object attributes, which is useful for SQLAlchemy/ORM objects.
+
+## Error Encountered
+
+The application failed during startup with:
+
 ```text
-http://127.0.0.1:8000/docs
+SyntaxError: from __future__ imports must occur at the beginning of the file
 ```
 
-**Valid POST JSON:**
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
+The traceback led through:
+
+```text
+main.py
+  ↓
+import models
+  ↓
+models.py
+  ↓
+from database import Base
+  ↓
+database.py
+  ↓
+SyntaxError
 ```
 
----
+The problem was:
 
-## 18. Main Learning Outcome
+```python
+from __future__ import annotations
+```
 
-After Video 4, you should understand:
+appearing around line 25 of `database.py`.
 
-- Pydantic and `BaseModel`
-- Request and response schemas
-- `Field()` validation
-- Schema inheritance
-- `PostBase`, `PostCreate`, and `PostResponse`
-- `ConfigDict(from_attributes=True)`
-- Request-body validation in FastAPI
-- Automatic Swagger schema generation
-- The difference between JSON decoding errors and validation errors
-- Why schema names must match imports
+### Correct placement
+
+```python
+from __future__ import annotations
+
+from sqlalchemy import create_engine
+```
+
+A `from __future__` import must be at the beginning of the file, before normal imports and executable code.
+
+If it is not required, it can also be removed.
+
+## Debugging Lesson
+
+When reading a traceback:
+
+1. Find the file and line shown near the bottom.
+2. Look at the final exception.
+3. Trace the import chain backward.
+4. Fix the actual source error rather than the first file mentioned.
+
+## Quick Revision
+
+**SQLAlchemy:** Python SQL toolkit and ORM.
+
+**Session:** Used to communicate with the database.
+
+**Base:** Parent class for SQLAlchemy models.
+
+**Mapped:** SQLAlchemy type annotation for mapped attributes.
+
+**mapped_column():** Defines/configures a database column.
+
+**ForeignKey:** Connects related database tables.
+
+**relationship():** Defines model relationships.
+
+**Pydantic:** Handles API validation/serialization.
+
+**`from_attributes=True`:** Allows Pydantic to read ORM object attributes.
+
+## Main Learning Outcome
+
+After this part, you should understand:
+- The role of SQLAlchemy in FastAPI.
+- Database engines and sessions.
+- SQLAlchemy declarative models.
+- `Mapped` and `mapped_column`.
+- Foreign keys and relationships.
+- The difference between database models and Pydantic schemas.
+- Basic FastAPI database dependency usage.
+- How to debug Python import and syntax errors.

@@ -1,45 +1,17 @@
-# FastAPI Tutorial — Video 4: Commands
+# FastAPI Tutorial — Video 5: Commands
 
-Commands used while working on **Pydantic Schemas**.
+Commands used for the **Database / SQLAlchemy** part.
 
-## 📂 Navigate to the Folder
-
-From `FastAPI_Tutorials`:
+## Navigate to the Project
 
 ```powershell
-cd "04-Pydantic-Schemas"
+cd "05-Database"
 ```
 
-## 🐍 Activate the Shared Virtual Environment
+## Activate the Shared Virtual Environment
 
 ```powershell
 ..\.venv\Scripts\activate
-```
-
-Verify that the terminal shows:
-
-```text
-(.venv)
-```
-
-## 📦 Install FastAPI
-
-If required:
-
-```powershell
-pip install "fastapi[standard]"
-```
-
-Check FastAPI:
-
-```powershell
-pip show fastapi
-```
-
-Check Pydantic:
-
-```powershell
-pip show pydantic
 ```
 
 Check Python:
@@ -54,117 +26,47 @@ Check pip:
 pip --version
 ```
 
-## ▶️ Start the Development Server
+## Install Dependencies
+
+FastAPI:
+
+```powershell
+pip install "fastapi[standard]"
+```
+
+SQLAlchemy:
+
+```powershell
+pip install sqlalchemy
+```
+
+Check packages:
+
+```powershell
+pip show fastapi
+pip show sqlalchemy
+pip show pydantic
+```
+
+## Run the Development Server
 
 ```powershell
 fastapi dev main.py
 ```
 
-## 🌐 Open the Application
-
-Home:
-
-```text
-http://127.0.0.1:8000/
-```
-
-Posts:
-
-```text
-http://127.0.0.1:8000/posts
-```
-
-Swagger UI:
+## Open Swagger UI
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-ReDoc:
+## Open ReDoc
 
 ```text
 http://127.0.0.1:8000/redoc
 ```
 
-## 🧪 Test the POST Endpoint
-
-Open:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Then:
-
-```text
-POST /api/posts
-→ Try it out
-→ Edit Value
-```
-
-Use:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-Click **Execute**.
-
-## 🧪 Test Validation
-
-### Empty title
-
-```json
-{
-  "title": "",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-This violates:
-
-```python
-Field(min_length=1, max_length=100)
-```
-
-### Empty content
-
-```json
-{
-  "title": "My New Post",
-  "content": "",
-  "author": "Test User"
-}
-```
-
-This violates:
-
-```python
-Field(min_length=1)
-```
-
-### Empty author
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": ""
-}
-```
-
-This violates:
-
-```python
-Field(min_length=1, max_length=50)
-```
-
-## 🛑 Stop the Server
+## Stop the Server
 
 Press:
 
@@ -172,7 +74,69 @@ Press:
 CTRL + C
 ```
 
-## 🔄 Useful Git Commands
+## Check Python Files for Syntax Errors
+
+Database:
+
+```powershell
+python -m py_compile database.py
+```
+
+Models:
+
+```powershell
+python -m py_compile models.py
+```
+
+Schemas:
+
+```powershell
+python -m py_compile schemas.py
+```
+
+Main:
+
+```powershell
+python -m py_compile main.py
+```
+
+A successful compile normally produces no output.
+
+## Fix `from __future__` Error
+
+Incorrect:
+
+```python
+from sqlalchemy import create_engine
+
+from __future__ import annotations
+```
+
+Correct:
+
+```python
+from __future__ import annotations
+
+from sqlalchemy import create_engine
+```
+
+Then restart:
+
+```powershell
+fastapi dev main.py
+```
+
+## Useful Package Commands
+
+```powershell
+pip list
+```
+
+```powershell
+pip freeze > requirements.txt
+```
+
+## Git Commands
 
 Check status:
 
@@ -180,16 +144,16 @@ Check status:
 git status
 ```
 
-Add Video 4:
+Add the project:
 
 ```powershell
-git add 04-Pydantic-Schemas/
+git add 05-Database/
 ```
 
 Commit:
 
 ```powershell
-git commit -m "Complete FastAPI Video 4 Pydantic Schemas"
+git commit -m "Complete FastAPI Video 5 Database"
 ```
 
 Push:
@@ -198,80 +162,18 @@ Push:
 git push
 ```
 
-## 📦 Optional Package Commands
-
-Show all installed packages:
+## Quick Command List
 
 ```powershell
-pip list
-```
-
-Create/update requirements file:
-
-```powershell
-pip freeze > requirements.txt
-```
-
-## ⚠️ Troubleshooting
-
-### `ImportError: cannot import name 'Post' from 'schemas'`
-
-Check that the names imported in `main.py` actually exist in `schemas.py`.
-
-For the current schema structure, the defined classes are:
-
-```text
-PostBase
-PostCreate
-PostResponse
-```
-
-### `422 JSON decode error`
-
-If the error says:
-
-```text
-JSON decode error
-Expecting value
-```
-
-check that the request body is valid JSON.
-
-Use:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-## 📌 Quick Command List
-
-```powershell
-cd "04-Pydantic-Schemas"
+cd "05-Database"
 ..\.venv\Scripts\activate
+pip install "fastapi[standard]"
+pip install sqlalchemy
 fastapi dev main.py
 ```
 
-Test in:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Stop:
+Stop with:
 
 ```text
 CTRL + C
-```
-
-Git:
-
-```powershell
-git status
-git add 04-Pydantic-Schemas/
-git commit -m "Complete FastAPI Video 4 Pydantic Schemas"
-git push
 ```

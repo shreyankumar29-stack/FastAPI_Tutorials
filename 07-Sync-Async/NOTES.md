@@ -1,423 +1,195 @@
-# FastAPI Tutorial — Video 4: Pydantic Schemas
+# FastAPI Tutorial — Video 7: Sync to Async
 
-## 1. What is Pydantic?
+## Overview
 
-Pydantic is used in FastAPI for **data validation and data modeling**.
+Video 7 focuses on converting the database layer from synchronous SQLAlchemy usage to asynchronous SQLAlchemy usage.
 
-It helps with:
-- Validating request data
-- Defining the expected structure of data
-- Type validation and conversion
-- Generating schemas in Swagger UI
+### Topics Covered
 
----
+- Async SQLAlchemy
+- `AsyncSession`
+- `async_sessionmaker`
+- `create_async_engine`
+- `aiosqlite`
+- `async def`
+- `async with`
+- `await`
+- Async database dependencies
+- Async CRUD operations
+- Sync vs Async SQLAlchemy
 
-## 2. BaseModel
+## Async Database URL
 
-Pydantic models inherit from `BaseModel`.
-
-```python
-from pydantic import BaseModel
-
-class PostBase(BaseModel):
-    title: str
-    content: str
-    author: str
-```
-
----
-
-## 3. Field Validation
-
-`Field()` adds validation rules to model fields.
+For SQLite with `aiosqlite`:
 
 ```python
-from pydantic import BaseModel, Field
-
-class PostBase(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
-    content: str = Field(min_length=1)
-    author: str = Field(min_length=1, max_length=50)
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./blog.db"
 ```
 
-| Field | Rule |
+Make sure it is `sqlite`, not `sqlit`.
+
+Install the async SQLite driver:
+
+```powershell
+pip install aiosqlite
+```
+
+## Async Engine
+
+```python
+from sqlalchemy.ext.asyncio import create_async_engine
+
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+)
+```
+
+## Async Session
+
+```python
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+```
+
+## Async Database Dependency
+
+```python
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+```
+
+`async def` is required because the function uses `async with`.
+
+## Complete `database.py`
+
+```python
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
+
+
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./blog.db"
+
+
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+)
+
+
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+```
+
+## Why `async def`?
+
+Incorrect:
+
+```python
+def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+```
+
+Correct:
+
+```python
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+```
+
+`async with` can only be used inside an asynchronous function.
+
+## Async Queries
+
+With SQLAlchemy's async execution style:
+
+```python
+from sqlalchemy import select
+
+result = await db.execute(select(User))
+users = result.scalars().all()
+```
+
+## Async Create
+
+```python
+db.add(user)
+await db.commit()
+await db.refresh(user)
+```
+
+## Async Update
+
+```python
+user.username = user_update.username
+await db.commit()
+await db.refresh(user)
+```
+
+## Async Delete
+
+```python
+db.delete(user)
+await db.commit()
+```
+
+## Sync vs Async
+
+| Synchronous | Asynchronous |
 |---|---|
-| title | 1–100 characters |
-| content | At least 1 character |
-| author | 1–50 characters |
+| `Session` | `AsyncSession` |
+| `create_engine()` | `create_async_engine()` |
+| `sessionmaker()` | `async_sessionmaker()` |
+| `def` | `async def` |
+| normal context manager | `async with` |
+| direct DB I/O | `await` DB I/O |
+| normal SQLite driver | `aiosqlite` |
 
----
+## Common Error: Wrong Database URL
 
-## 4. PostBase
-
-`PostBase` contains the fields common to posts:
-
-```python
-class PostBase(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
-    content: str = Field(min_length=1)
-    author: str = Field(min_length=1, max_length=50)
-```
-
-It is used as a base class for other schemas.
-
----
-
-## 5. PostCreate
+Incorrect:
 
 ```python
-class PostCreate(PostBase):
-    pass
+SQLALCHEMY_DATABASE_URL = "sqlit+aiosqlite:///./blog.db"
 ```
 
-`PostCreate` inherits:
-- `title`
-- `content`
-- `author`
-
-It represents the data expected when **creating a post**.
-
-`pass` means no additional fields are added.
-
----
-
-## 6. PostResponse
+Correct:
 
 ```python
-class PostResponse(PostBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    date_posted: str
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./blog.db"
 ```
 
-It contains:
-
-```text
-title
-content
-author
-id
-date_posted
-```
-
-The `id` and `date_posted` fields can be returned by the server rather than supplied when creating the post.
-
----
-
-## 7. ConfigDict
-
-```python
-from pydantic import ConfigDict
-```
-
-The response schema uses:
-
-```python
-model_config = ConfigDict(from_attributes=True)
-```
-
-`from_attributes=True` allows Pydantic to read values from object attributes, which is useful when working with ORM/database objects.
-
----
-
-## 8. Schema Inheritance
-
-The structure is:
-
-```text
-              PostBase
-             /        \
-            /          \
-     PostCreate     PostResponse
-                       |
-                 id: int
-                 date_posted: str
-```
-
-This avoids repeating common fields.
-
----
-
-## 9. Request Body
-
-`POST /api/posts` accepts JSON based on `PostCreate`.
-
-Example:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-The client provides:
-
-```text
-title
-content
-author
-```
-
----
-
-## 10. Response Schema
-
-A response can contain:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User",
-  "id": 3,
-  "date_posted": "September 15, 2026"
-}
-```
-
-The exact response depends on the endpoint implementation.
-
----
-
-## 11. FastAPI + Pydantic Flow
-
-```text
-Client
-   ↓
-JSON Request
-   ↓
-FastAPI
-   ↓
-PostCreate
-   ↓
-Pydantic Validation
-   ↓
-Endpoint
-   ↓
-Response
-```
-
-FastAPI uses the Pydantic schema to understand and validate the request body.
-
----
-
-## 12. Swagger UI
-
-Open:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Swagger UI automatically displays the request and response schemas.
-
-For `POST /api/posts`, the request body can look like:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-The generated response schema can include:
-
-```text
-title
-content
-author
-id
-date_posted
-```
-
----
-
-## 13. 422 Validation Error
-
-FastAPI commonly returns:
-
-```text
-422 Unprocessable Content
-```
-
-when request data cannot be processed.
-
-### Pydantic validation error
-
-Examples:
-- Required field missing
-- String too short
-- String too long
-
-### JSON decoding error
-
-An error such as:
-
-```text
-type: json_invalid
-msg: JSON decode error
-ctx: Expecting value
-```
-
-means FastAPI could not decode the request body as valid JSON.
-
-These are different from Pydantic field-validation errors.
-
-A valid JSON body is:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
----
-
-## 14. Important Import Error
-
-`main.py` previously tried to import:
-
-```python
-from schemas import Post, PostCreate, PostResponse
-```
-
-But the current `schemas.py` defines:
-
-```text
-PostBase
-PostCreate
-PostResponse
-```
-
-There is no `Post` class.
-
-Therefore importing `Post` causes:
-
-```text
-ImportError: cannot import name 'Post' from 'schemas'
-```
-
-Always make sure the names imported in `main.py` match the classes actually defined in `schemas.py`.
-
----
-
-## 15. Complete schemas.py
-
-```python
-from pydantic import BaseModel, ConfigDict, Field
-
-
-class PostBase(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
-    content: str = Field(min_length=1)
-    author: str = Field(min_length=1, max_length=50)
-
-
-class PostCreate(PostBase):
-    pass
-
-
-class PostResponse(PostBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    date_posted: str
-```
-
----
-
-## 16. Why Separate Create and Response Schemas?
-
-### `PostCreate`
-
-Used for incoming data:
-
-```text
-title
-content
-author
-```
-
-### `PostResponse`
-
-Used for outgoing data:
-
-```text
-title
-content
-author
-id
-date_posted
-```
-
-Separating them makes the API structure clearer and prevents clients from having to provide fields generated by the server.
-
----
-
-## 17. Quick Revision
-
-**Pydantic:** Data validation and modeling library used by FastAPI.
-
-**BaseModel:**
-```python
-class PostBase(BaseModel):
-```
-
-**Field:**
-```python
-Field(min_length=1, max_length=100)
-```
-
-**Create schema:**
-```python
-class PostCreate(PostBase):
-    pass
-```
-
-**Response schema:**
-```python
-class PostResponse(PostBase):
-    id: int
-    date_posted: str
-```
-
-**Model configuration:**
-```python
-model_config = ConfigDict(from_attributes=True)
-```
-
-**Swagger UI:**
-```text
-http://127.0.0.1:8000/docs
-```
-
-**Valid POST JSON:**
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
----
-
-## 18. Main Learning Outcome
-
-After Video 4, you should understand:
-
-- Pydantic and `BaseModel`
-- Request and response schemas
-- `Field()` validation
-- Schema inheritance
-- `PostBase`, `PostCreate`, and `PostResponse`
-- `ConfigDict(from_attributes=True)`
-- Request-body validation in FastAPI
-- Automatic Swagger schema generation
-- The difference between JSON decoding errors and validation errors
-- Why schema names must match imports
+The missing `e` in `sqlite` causes SQLAlchemy to fail while loading the database dialect/driver.
+
+## Main Learning Outcome
+
+After Video 7, you should understand:
+
+- Why asynchronous database operations are useful.
+- How to create an async SQLAlchemy engine.
+- How `AsyncSession` works.
+- How to create an async database dependency.
+- Why `async def` is required with `async with`.
+- Why `aiosqlite` is needed for async SQLite.
+- How CRUD operations change when using `AsyncSession`.
+- The difference between synchronous and asynchronous SQLAlchemy.

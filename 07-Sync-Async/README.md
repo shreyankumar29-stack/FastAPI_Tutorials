@@ -1,242 +1,195 @@
-# FastAPI Tutorial — Video 4: Pydantic Schemas
+# FastAPI Tutorial — Video 7: Sync to Async
 
-This folder contains the code and documentation for **Video 4**, focused on using **Pydantic schemas for request validation and response data** in FastAPI.
+This folder contains the code and documentation for **Video 7**, where the FastAPI database layer is converted from synchronous SQLAlchemy to asynchronous SQLAlchemy.
 
-## 📚 Topics Covered
+## Topics Covered
 
-- Pydantic and `BaseModel`
-- Creating schemas
-- `Field()` validation
-- `PostBase`
-- `PostCreate`
-- `PostResponse`
-- Schema inheritance
-- `ConfigDict`
-- `from_attributes=True`
-- Request body validation
-- Response schemas
-- Swagger UI / OpenAPI schemas
-- HTTP 422 validation errors
-- JSON decoding errors
-- Debugging schema import errors
+- Async SQLAlchemy
+- `AsyncSession`
+- `async_sessionmaker`
+- `create_async_engine`
+- `aiosqlite`
+- `async def`
+- `async with`
+- `await`
+- Async database dependencies
+- Async CRUD operations
+- Sync vs Async SQLAlchemy
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
-04-Pydantic-Schemas/
-│
+07-Sync-Async/
 ├── main.py
+├── database.py
+├── models.py
 ├── schemas.py
-│
 ├── templates/
-│   ├── layout.html
-│   ├── home.html
-│   └── post.html
-│
 └── static/
-    ├── css/
-    ├── js/
-    └── images/
 ```
 
-## 🚀 Setup
-
-This project uses the shared virtual environment from the parent `FastAPI_Tutorials` directory.
-
-From this folder:
-
-```powershell
-..\.venv\Scripts\activate
-```
-
-If FastAPI is not installed:
-
-```powershell
-pip install "fastapi[standard]"
-```
-
-## ▶️ Run the Application
-
-```powershell
-fastapi dev main.py
-```
-
-## 🌐 Important Routes
-
-### Home
+## Async Database Flow
 
 ```text
-/
+Client
+   ↓
+FastAPI
+   ↓
+Async Dependency
+   ↓
+AsyncSession
+   ↓
+Async SQLAlchemy
+   ↓
+SQLite / aiosqlite
 ```
 
-### Posts
-
-```text
-/posts
-```
-
-### Create Post API
-
-```text
-POST /api/posts
-```
-
-### Get Posts API
-
-```text
-GET /api/posts
-```
-
-### Individual Post API
-
-```text
-GET /api/posts/{post_id}
-```
-
-## 🧩 Pydantic Schemas
-
-The tutorial uses three related schemas:
-
-```text
-PostBase
-   ├── PostCreate
-   └── PostResponse
-```
-
-### PostBase
-
-Contains the common fields:
+## Database URL
 
 ```python
-class PostBase(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
-    content: str = Field(min_length=1)
-    author: str = Field(min_length=1, max_length=50)
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./blog.db"
 ```
 
-### PostCreate
+`sqlite+aiosqlite` is correct. `sqlit+aiosqlite` is incorrect.
 
-Used for creating a post:
+## Async Engine
 
 ```python
-class PostCreate(PostBase):
+from sqlalchemy.ext.asyncio import create_async_engine
+
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+)
+```
+
+## Async Session
+
+```python
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+```
+
+## Async Database Dependency
+
+```python
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+```
+
+## Complete Database Setup
+
+```python
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
+
+
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./blog.db"
+
+
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+)
+
+
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+class Base(DeclarativeBase):
     pass
+
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 ```
 
-### PostResponse
+## Install Async SQLite Driver
 
-Used for returning a post:
+```powershell
+pip install aiosqlite
+```
+
+## Async Query Example
 
 ```python
-class PostResponse(PostBase):
-    model_config = ConfigDict(from_attributes=True)
+from sqlalchemy import select
 
-    id: int
-    date_posted: str
+result = await db.execute(select(User))
+users = result.scalars().all()
 ```
 
-## 📝 Example Request Body
-
-For `POST /api/posts`:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-The request uses the fields defined by `PostCreate`.
-
-## 🔍 Validation
-
-The schema validates:
-
-- `title`: 1–100 characters
-- `content`: minimum 1 character
-- `author`: 1–50 characters
-
-Invalid data can result in a `422 Unprocessable Content` response.
-
-## 📖 Swagger UI
-
-FastAPI automatically generates interactive API documentation.
-
-Open:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-The Pydantic schemas are automatically reflected in the request and response documentation.
-
-## ⚠️ Errors Encountered
-
-### Schema Import Error
-
-If `main.py` contains:
+## Async Create
 
 ```python
-from schemas import Post, PostCreate, PostResponse
+db.add(user)
+await db.commit()
+await db.refresh(user)
 ```
 
-but `schemas.py` only defines:
+## Async Update
 
-```text
-PostBase
-PostCreate
-PostResponse
+```python
+user.username = user_update.username
+await db.commit()
+await db.refresh(user)
 ```
 
-Python raises:
+## Async Delete
 
-```text
-ImportError: cannot import name 'Post' from 'schemas'
+```python
+db.delete(user)
+await db.commit()
 ```
 
-The imported names must match the classes actually defined in `schemas.py`.
+## Common Error
 
-### JSON Decode Error
+Incorrect:
 
-A response such as:
-
-```text
-422 Unprocessable Content
-JSON decode error
-Expecting value
+```python
+def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 ```
 
-means the request body could not be decoded as valid JSON.
+Correct:
 
-A valid request body is:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
+```python
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 ```
 
-## 🎯 Learning Outcome
+## Learning Outcome
 
-After completing Video 4, you should be able to:
+After Video 7, you should be able to:
 
-1. Create Pydantic models with `BaseModel`.
-2. Add validation using `Field()`.
-3. Reuse schemas using inheritance.
-4. Separate create and response schemas.
-5. Validate JSON request bodies in FastAPI.
-6. Understand how schemas appear in Swagger UI.
-7. Use `ConfigDict(from_attributes=True)`.
-8. Distinguish JSON decoding errors from Pydantic validation errors.
-9. Debug schema import problems.
+1. Understand async SQLAlchemy.
+2. Use `AsyncSession`.
+3. Use `async_sessionmaker`.
+4. Create an async engine.
+5. Use `aiosqlite`.
+6. Understand `async def` and `async with`.
+7. Use `await` for async database operations.
+8. Build an async database dependency.
+9. Convert CRUD database operations to async.
+10. Understand sync vs async SQLAlchemy.
 
-## 🛠️ Technologies
+## Technologies
 
 - Python
 - FastAPI
+- SQLAlchemy
+- aiosqlite
 - Pydantic
-- Jinja2
-- Starlette

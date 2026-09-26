@@ -1,261 +1,236 @@
-# FastAPI Tutorial — Video 4: Commands
+# FastAPI Tutorial — Video 6: Commands
 
-Commands used while working on **Pydantic Schemas**.
-
-## 📂 Navigate to the Folder
-
-From `FastAPI_Tutorials`:
+## Navigate to the Project
 
 ```powershell
-cd "04-Pydantic-Schemas"
+cd "06-CRUD"
 ```
 
-## 🐍 Activate the Shared Virtual Environment
+## Activate the Shared Virtual Environment
 
 ```powershell
 ..\.venv\Scripts\activate
 ```
 
-Verify that the terminal shows:
-
-```text
-(.venv)
-```
-
-## 📦 Install FastAPI
-
-If required:
+## Install Dependencies
 
 ```powershell
 pip install "fastapi[standard]"
 ```
 
-Check FastAPI:
+```powershell
+pip install sqlalchemy
+```
+
+## Check Packages
 
 ```powershell
 pip show fastapi
 ```
 
-Check Pydantic:
+```powershell
+pip show sqlalchemy
+```
 
 ```powershell
 pip show pydantic
 ```
 
-Check Python:
-
 ```powershell
-python --version
+pip list
 ```
 
-Check pip:
-
-```powershell
-pip --version
-```
-
-## ▶️ Start the Development Server
+## Run the Server
 
 ```powershell
 fastapi dev main.py
 ```
 
-## 🌐 Open the Application
-
-Home:
-
-```text
-http://127.0.0.1:8000/
-```
-
-Posts:
-
-```text
-http://127.0.0.1:8000/posts
-```
-
-Swagger UI:
+## Swagger UI
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-ReDoc:
+## ReDoc
 
 ```text
 http://127.0.0.1:8000/redoc
 ```
 
-## 🧪 Test the POST Endpoint
-
-Open:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Then:
-
-```text
-POST /api/posts
-→ Try it out
-→ Edit Value
-```
-
-Use:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-Click **Execute**.
-
-## 🧪 Test Validation
-
-### Empty title
-
-```json
-{
-  "title": "",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-This violates:
-
-```python
-Field(min_length=1, max_length=100)
-```
-
-### Empty content
-
-```json
-{
-  "title": "My New Post",
-  "content": "",
-  "author": "Test User"
-}
-```
-
-This violates:
-
-```python
-Field(min_length=1)
-```
-
-### Empty author
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": ""
-}
-```
-
-This violates:
-
-```python
-Field(min_length=1, max_length=50)
-```
-
-## 🛑 Stop the Server
-
-Press:
+## Stop the Server
 
 ```text
 CTRL + C
 ```
 
-## 🔄 Useful Git Commands
+# CRUD Testing
 
-Check status:
+## Create User
 
-```powershell
-git status
+Open:
+
+```text
+POST /api/users
 ```
 
-Add Video 4:
+Then:
 
-```powershell
-git add 04-Pydantic-Schemas/
+```text
+Try it out → Enter JSON → Execute
 ```
 
-Commit:
+## Get All Users
 
-```powershell
-git commit -m "Complete FastAPI Video 4 Pydantic Schemas"
+Open:
+
+```text
+GET /api/users
 ```
 
-Push:
+Then:
 
-```powershell
-git push
+```text
+Try it out → Execute
 ```
 
-## 📦 Optional Package Commands
+Use the response to find existing user IDs.
 
-Show all installed packages:
+## Get One User
 
-```powershell
-pip list
+Open:
+
+```text
+GET /api/users/{user_id}
 ```
 
-Create/update requirements file:
+Enter an existing ID, for example:
+
+```text
+1
+```
+
+Then click **Execute**.
+
+## Update User
+
+Open:
+
+```text
+PATCH /api/users/{user_id}
+```
+
+Enter an existing ID:
+
+```text
+1
+```
+
+Example body:
+
+```json
+{
+  "username": "NewUsername"
+}
+```
+
+Click **Execute**.
+
+## Delete User
+
+Open:
+
+```text
+DELETE /api/users/{user_id}
+```
+
+Enter an existing ID and click **Execute**.
+
+If the ID does not exist:
+
+```text
+404 User not found
+```
+
+## JSON Validation
+
+Valid:
+
+```json
+{
+  "username": "Shreyansh"
+}
+```
+
+Invalid:
+
+```json
+{
+  "username": "Shreyansh",
+}
+```
+
+The second example has a trailing comma and can cause:
+
+```text
+422 Unprocessable Content
+JSON decode error
+Illegal trailing comma before end of object
+```
+
+# Syntax Checks
+
+```powershell
+python -m py_compile main.py
+```
+
+```powershell
+python -m py_compile models.py
+```
+
+```powershell
+python -m py_compile schemas.py
+```
+
+```powershell
+python -m py_compile database.py
+```
+
+No output normally means the file passed the syntax check.
+
+# Requirements
 
 ```powershell
 pip freeze > requirements.txt
 ```
 
-## ⚠️ Troubleshooting
-
-### `ImportError: cannot import name 'Post' from 'schemas'`
-
-Check that the names imported in `main.py` actually exist in `schemas.py`.
-
-For the current schema structure, the defined classes are:
-
-```text
-PostBase
-PostCreate
-PostResponse
-```
-
-### `422 JSON decode error`
-
-If the error says:
-
-```text
-JSON decode error
-Expecting value
-```
-
-check that the request body is valid JSON.
-
-Use:
-
-```json
-{
-  "title": "My New Post",
-  "content": "This is my Content",
-  "author": "Test User"
-}
-```
-
-## 📌 Quick Command List
+# Git Commands
 
 ```powershell
-cd "04-Pydantic-Schemas"
+git status
+```
+
+```powershell
+git add 06-CRUD/
+```
+
+```powershell
+git commit -m "Complete FastAPI Video 6 CRUD"
+```
+
+```powershell
+git push
+```
+
+# Quick Command List
+
+```powershell
+cd "06-CRUD"
 ..\.venv\Scripts\activate
 fastapi dev main.py
 ```
 
-Test in:
+Swagger:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -265,13 +240,4 @@ Stop:
 
 ```text
 CTRL + C
-```
-
-Git:
-
-```powershell
-git status
-git add 04-Pydantic-Schemas/
-git commit -m "Complete FastAPI Video 4 Pydantic Schemas"
-git push
 ```

@@ -13,4 +13,6 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30  
 
 
-settings = Settings()  # Loaded from .env file
+
+settings = Settings()  #type :ignore[call-arg]
+# Loaded from .env file

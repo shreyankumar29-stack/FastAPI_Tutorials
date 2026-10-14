@@ -1,53 +1,50 @@
-# FastAPI Tutorial – Part 8: Routers
+# FastAPI Tutorial – Part 9: Frontend Forms
 
-This part focuses on organizing a FastAPI application using **APIRouter**.
+This part focuses on receiving data from **HTML forms** in FastAPI and connecting frontend templates with backend routes.
 
 ## Topics Covered
 
-- What is `APIRouter`?
-- Why use routers?
-- Creating separate router files
-- Registering routers with `app.include_router()`
-- Router prefixes
-- Router tags
-- Organizing API endpoints
-- Keeping `main.py` clean
+- HTML forms
+- GET and POST form submission
+- FastAPI `Form()`
+- `python-multipart`
+- Jinja2 templates
+- Receiving form fields
+- Redirecting after form submission
+- Connecting frontend and backend
 
-## Typical Structure
+## Example HTML Form
 
-```text
-project/
-├── main.py
-├── routers/
-│   ├── __init__.py
-│   ├── posts.py
-│   └── users.py
-├── templates/
-├── static/
-└── database.py
+```html
+<form method="post" action="/login">
+    <input type="text" name="username">
+    <input type="password" name="password">
+    <button type="submit">Login</button>
+</form>
 ```
 
-## Basic Router
+## FastAPI Route
 
 ```python
-from fastapi import APIRouter
+from fastapi import Form
 
-router = APIRouter()
-
-@router.get("/posts")
-def get_posts():
-    return {"message": "All posts"}
+@app.post("/login")
+async def login(
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    return {
+        "username": username,
+        "password": password
+    }
 ```
 
-Register it in `main.py`:
+## Required Package
 
-```python
-from fastapi import FastAPI
-from routers import posts
+HTML form handling requires multipart support:
 
-app = FastAPI()
-
-app.include_router(posts.router)
+```powershell
+pip install python-multipart
 ```
 
 ## Run
@@ -57,4 +54,4 @@ app.include_router(posts.router)
 fastapi dev main.py
 ```
 
-> This documentation is organized for your FastAPI tutorial workflow and focuses specifically on Routers.
+> This documentation is organized for your FastAPI tutorial workflow and focuses specifically on Frontend Forms.

@@ -1,210 +1,284 @@
-# Part 8 – Routers Notes
+# Part 9 – Frontend Forms Notes
 
-## 1. What is APIRouter?
+## 1. What is an HTML Form?
 
-`APIRouter` is used to group related FastAPI path operations.
+An HTML `<form>` collects information from the user and sends it to the backend.
 
-Instead of putting every endpoint inside `main.py`, routes can be separated into different files.
+Example:
+
+```html
+<form method="post" action="/login">
+    <input type="text" name="username">
+    <input type="password" name="password">
+    <button type="submit">Login</button>
+</form>
+```
+
+Important attributes:
+
+- `method` → HTTP method used to submit the form
+- `action` → URL receiving the form data
+- `name` → identifies each submitted field
+
+---
+
+## 2. GET vs POST
+
+### GET
+
+```html
+<form method="get" action="/search">
+```
+
+Data is generally sent as query parameters.
+
+Example:
+
+```text
+/search?query=fastapi
+```
+
+### POST
+
+```html
+<form method="post" action="/login">
+```
+
+Data is sent in the request body.
+
+POST is commonly used for submitting or creating data.
+
+---
+
+## 3. FastAPI Form()
+
+FastAPI uses `Form()` to receive HTML form fields.
 
 ```python
-from fastapi import APIRouter
+from fastapi import Form
 
-router = APIRouter()
+@app.post("/login")
+async def login(
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    return {
+        "username": username,
+        "password": password
+    }
+```
+
+The parameter names must correspond to the HTML input `name` attributes.
+
+For example:
+
+```html
+<input name="username">
+```
+
+matches:
+
+```python
+username: str = Form(...)
 ```
 
 ---
 
-## 2. Creating Routes
+## 4. Install python-multipart
 
-```python
-@router.get("/posts")
-def get_posts():
-    return {"message": "Get posts"}
+Form parsing requires the multipart package.
+
+```powershell
+pip install python-multipart
 ```
 
-Another route:
+If it is missing, FastAPI can report an error indicating that `python-multipart` is required.
+
+---
+
+## 5. Forms with Jinja2
+
+A form can be placed inside a Jinja2 template.
+
+Example:
+
+```html
+{% extends "layout.html" %}
+
+{% block content %}
+
+<form method="post" action="/login">
+    <input type="text" name="username" placeholder="Username">
+    <input type="password" name="password" placeholder="Password">
+    <button type="submit">Login</button>
+</form>
+
+{% endblock %}
+```
+
+The template is rendered using `Jinja2Templates`.
+
+---
+
+## 6. GET Route for the Form Page
 
 ```python
-@router.post("/posts")
-def create_post():
-    return {"message": "Create post"}
+@app.get("/login", include_in_schema=False)
+def login_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "login.html"
+    )
+```
+
+This displays the form.
+
+---
+
+## 7. POST Route for Form Submission
+
+```python
+@app.post("/login")
+async def login(
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    return {
+        "username": username,
+        "password": password
+    }
+```
+
+The browser sends the submitted form fields to this endpoint.
+
+---
+
+## 8. Form Flow
+
+The overall flow is:
+
+```text
+Browser
+   ↓
+GET /login
+   ↓
+FastAPI renders login.html
+   ↓
+User fills the form
+   ↓
+POST /login
+   ↓
+FastAPI receives Form(...)
+   ↓
+Backend processes the data
+   ↓
+Response / redirect
 ```
 
 ---
 
-## 3. Registering a Router
+## 9. Redirect After Submission
 
-The router must be included in the main FastAPI application.
-
-```python
-from fastapi import FastAPI
-from routers import posts
-
-app = FastAPI()
-
-app.include_router(posts.router)
-```
-
-If a router is not included, FastAPI will not register its routes.
-
----
-
-## 4. Router Prefix
-
-A prefix can be added when registering a router.
+FastAPI can redirect the user after processing a form.
 
 ```python
-app.include_router(
-    posts.router,
-    prefix="/api"
+from fastapi.responses import RedirectResponse
+
+return RedirectResponse(
+    url="/",
+    status_code=303
 )
 ```
 
-A route:
-
-```python
-@router.get("/posts")
-```
-
-will then be available at:
-
-```text
-/api/posts
-```
+A `303 See Other` response is commonly used after a successful POST when redirecting to another page.
 
 ---
 
-## 5. Router Tags
+## 10. Important Difference: JSON vs Form Data
 
-Tags organize endpoints in Swagger/OpenAPI.
-
-```python
-app.include_router(
-    posts.router,
-    prefix="/api",
-    tags=["Posts"]
-)
-```
-
-Swagger will group these endpoints under the `Posts` tag.
-
----
-
-## 6. Separate Routers
-
-A larger application can have different routers.
-
-```text
-routers/
-├── posts.py
-├── users.py
-└── auth.py
-```
-
-Example `users.py`:
+JSON request:
 
 ```python
-from fastapi import APIRouter
-
-router = APIRouter()
-
-@router.get("/users")
-def get_users():
-    return {"message": "All users"}
+@app.post("/posts")
+def create_post(post: PostCreate):
+    ...
 ```
 
-Then:
+HTML form:
 
 ```python
-from routers import posts, users
-
-app.include_router(posts.router)
-app.include_router(users.router)
+@app.post("/login")
+def login(username: str = Form(...)):
+    ...
 ```
 
----
-
-## 7. Why Routers?
-
-Without routers:
-
-```text
-main.py
-└── hundreds of endpoints
-```
-
-With routers:
-
-```text
-main.py
-routers/
-├── posts.py
-├── users.py
-└── auth.py
-```
-
-This makes the project easier to maintain.
-
----
-
-## 8. Router Dependencies
-
-Routers can also have shared dependencies.
-
-```python
-router = APIRouter(
-    prefix="/posts",
-    tags=["Posts"]
-)
-```
-
-This avoids repeating the same configuration on every route.
-
----
-
-## 9. Important Concept
-
-`APIRouter` does **not** create a second FastAPI application.
-
-It creates a group of routes that are later included in the main `FastAPI()` application.
+They are different request formats and should be handled accordingly.
 
 ---
 
 ## Common Mistakes
 
-### Forgetting the import
+### Missing `Form`
+
+Incorrect:
 
 ```python
-from fastapi import APIRouter
+async def login(username: str):
 ```
 
-### Forgetting to include the router
+For an HTML form field, use:
 
 ```python
-app.include_router(posts.router)
+async def login(username: str = Form(...)):
 ```
 
-### Wrong router variable
+### Missing `python-multipart`
 
-If the router file contains:
+Install:
 
-```python
-router = APIRouter()
+```powershell
+pip install python-multipart
 ```
 
-then use:
+### Mismatched field names
+
+HTML:
+
+```html
+<input name="username">
+```
+
+FastAPI:
 
 ```python
-app.include_router(posts.router)
+username: str = Form(...)
+```
+
+The names should match.
+
+### Wrong action URL
+
+If the form has:
+
+```html
+<form method="post" action="/login">
+```
+
+there must be a matching POST route:
+
+```python
+@app.post("/login")
 ```
 
 ---
 
 ## Key Takeaways
 
-- `APIRouter()` groups related endpoints.
-- Routes can be moved out of `main.py`.
-- `include_router()` registers them with the application.
-- `prefix` adds a common URL prefix.
-- `tags` organizes Swagger documentation.
-- Routers improve project structure and maintainability.
+- HTML forms send user-entered data to the backend.
+- `Form()` receives form fields in FastAPI.
+- `python-multipart` is required for form parsing.
+- The HTML `name` must match the FastAPI parameter.
+- Jinja2 templates can display the form.
+- GET can display the form page.
+- POST can process submitted data.
+- `RedirectResponse` can redirect after successful submission.

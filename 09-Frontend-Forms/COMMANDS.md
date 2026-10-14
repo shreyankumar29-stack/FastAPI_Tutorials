@@ -1,4 +1,4 @@
-# Part 8 – Routers Commands
+# Part 9 – Frontend Forms Commands
 
 ## Activate the shared virtual environment
 
@@ -6,16 +6,10 @@
 ..\.venv\Scripts\activate
 ```
 
-## Create routers folder
+## Install form support
 
 ```powershell
-New-Item routers -ItemType Directory
-```
-
-## Create router files
-
-```powershell
-New-Item routers\__init__.py, routers\posts.py, routers\users.py -ItemType File
+pip install python-multipart
 ```
 
 ## Run FastAPI
@@ -24,26 +18,44 @@ New-Item routers\__init__.py, routers\posts.py, routers\users.py -ItemType File
 fastapi dev main.py
 ```
 
-## Check installed packages
+## Check installed package
+
+```powershell
+pip show python-multipart
+```
+
+## Check all packages
 
 ```powershell
 pip list
-```
-
-## Check project files
-
-```powershell
-Get-ChildItem
-```
-
-## Check router files
-
-```powershell
-Get-ChildItem routers
 ```
 
 ## Save dependencies
 
 ```powershell
 pip freeze > requirements.txt
+```
+
+## Create templates folder if needed
+
+```powershell
+New-Item templates -ItemType Directory
+```
+
+## Create a form template
+
+```powershell
+New-Item templates\login.html -ItemType File
+```
+
+## Check project structure
+
+```powershell
+Get-ChildItem
+```
+
+## Check templates
+
+```powershell
+Get-ChildItem templates
 ```

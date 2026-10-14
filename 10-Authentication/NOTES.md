@@ -1,210 +1,100 @@
-# Part 8 – Routers Notes
+# Part 10 – Authentication Notes
 
-## 1. What is APIRouter?
+## Authentication vs Authorization
+Authentication asks **who are you?** Authorization asks **what are you allowed to do?** Authorization is covered in Part 11.
 
-`APIRouter` is used to group related FastAPI path operations.
-
-Instead of putting every endpoint inside `main.py`, routes can be separated into different files.
+## Password Hashing
+Never store a plain password. Hash it before saving it.
 
 ```python
-from fastapi import APIRouter
+from pwdlib import PasswordHash
 
-router = APIRouter()
+password_hash = PasswordHash.recommended()
+hashed_password = password_hash.hash(password)
+password_hash.verify(password, hashed_password)
 ```
 
----
+The tutorial uses `pwdlib` with Argon2.
 
-## 2. Creating Routes
-
+## Pydantic Settings
 ```python
-@router.get("/posts")
-def get_posts():
-    return {"message": "Get posts"}
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
+    secret_key: SecretStr
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+
+settings = Settings()
 ```
 
-Another route:
-
+`SecretStr` helps protect secret values. Use:
 ```python
-@router.post("/posts")
-def create_post():
-    return {"message": "Create post"}
+settings.secret_key.get_secret_value()
+```
+when the actual value is required.
+
+## JWT
+JWT is used for token-based authentication.
+
+```text
+Login → verify password → create JWT → client receives token
 ```
 
----
-
-## 3. Registering a Router
-
-The router must be included in the main FastAPI application.
-
-```python
-from fastapi import FastAPI
-from routers import posts
-
-app = FastAPI()
-
-app.include_router(posts.router)
+JWT has:
+```text
+Header.Payload.Signature
 ```
 
-If a router is not included, FastAPI will not register its routes.
+Do not put a plain password in a token.
 
----
-
-## 4. Router Prefix
-
-A prefix can be added when registering a router.
-
+## HS256
 ```python
-app.include_router(
-    posts.router,
-    prefix="/api"
+algorithm = "HS256"
+```
+HS256 is a symmetric JWT signing algorithm.
+
+## Token Expiration
+```python
+access_token_expire_minutes: int = 30
+```
+Expiration limits how long an access token remains valid.
+
+## OAuth2PasswordBearer
+```python
+from fastapi.security import OAuth2PasswordBearer
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/auth/login"
 )
 ```
 
-A route:
-
-```python
-@router.get("/posts")
-```
-
-will then be available at:
-
+## Registration
 ```text
-/api/posts
+POST /api/users → validate → hash password → save user
 ```
 
----
-
-## 5. Router Tags
-
-Tags organize endpoints in Swagger/OpenAPI.
-
-```python
-app.include_router(
-    posts.router,
-    prefix="/api",
-    tags=["Posts"]
-)
-```
-
-Swagger will group these endpoints under the `Posts` tag.
-
----
-
-## 6. Separate Routers
-
-A larger application can have different routers.
-
+## Login
 ```text
-routers/
-├── posts.py
-├── users.py
-└── auth.py
+POST /api/auth/login → find user → verify password → create JWT
 ```
-
-Example `users.py`:
-
-```python
-from fastapi import APIRouter
-
-router = APIRouter()
-
-@router.get("/users")
-def get_users():
-    return {"message": "All users"}
-```
-
-Then:
-
-```python
-from routers import posts, users
-
-app.include_router(posts.router)
-app.include_router(users.router)
-```
-
----
-
-## 7. Why Routers?
-
-Without routers:
-
-```text
-main.py
-└── hundreds of endpoints
-```
-
-With routers:
-
-```text
-main.py
-routers/
-├── posts.py
-├── users.py
-└── auth.py
-```
-
-This makes the project easier to maintain.
-
----
-
-## 8. Router Dependencies
-
-Routers can also have shared dependencies.
-
-```python
-router = APIRouter(
-    prefix="/posts",
-    tags=["Posts"]
-)
-```
-
-This avoids repeating the same configuration on every route.
-
----
-
-## 9. Important Concept
-
-`APIRouter` does **not** create a second FastAPI application.
-
-It creates a group of routes that are later included in the main `FastAPI()` application.
-
----
 
 ## Common Mistakes
-
-### Forgetting the import
-
+Incorrect:
 ```python
-from fastapi import APIRouter
+algorithm: "HS256"
+```
+Correct:
+```python
+algorithm: str = "HS256"
 ```
 
-### Forgetting to include the router
-
-```python
-app.include_router(posts.router)
+Also keep `.env` out of Git:
+```gitignore
+.env
 ```
-
-### Wrong router variable
-
-If the router file contains:
-
-```python
-router = APIRouter()
-```
-
-then use:
-
-```python
-app.include_router(posts.router)
-```
-
----
-
-## Key Takeaways
-
-- `APIRouter()` groups related endpoints.
-- Routes can be moved out of `main.py`.
-- `include_router()` registers them with the application.
-- `prefix` adds a common URL prefix.
-- `tags` organizes Swagger documentation.
-- Routers improve project structure and maintainability.

@@ -1,49 +1,50 @@
-# Part 8 – Routers Commands
+# Part 10 – Commands
 
-## Activate the shared virtual environment
-
+## Activate venv
 ```powershell
 ..\.venv\Scripts\activate
 ```
 
-## Create routers folder
-
+## Install settings
 ```powershell
-New-Item routers -ItemType Directory
+pip install pydantic-settings
 ```
 
-## Create router files
-
+## Install password hashing with Argon2
 ```powershell
-New-Item routers\__init__.py, routers\posts.py, routers\users.py -ItemType File
+pip install "pwdlib[argon2]"
 ```
 
-## Run FastAPI
+## Install JWT support
+```powershell
+pip install PyJWT
+```
 
+## Run
 ```powershell
 fastapi dev main.py
 ```
 
-## Check installed packages
-
+## Check packages
 ```powershell
 pip list
+pip show pwdlib
+pip show pydantic-settings
+pip show PyJWT
 ```
 
-## Check project files
-
+## Create .env
 ```powershell
-Get-ChildItem
-```
-
-## Check router files
-
-```powershell
-Get-ChildItem routers
+New-Item .env -ItemType File
 ```
 
 ## Save dependencies
-
 ```powershell
 pip freeze > requirements.txt
+```
+
+## Test endpoints
+```text
+POST http://localhost:8000/api/users
+POST http://localhost:8000/api/auth/login
 ```

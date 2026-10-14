@@ -1,60 +1,51 @@
-# FastAPI Tutorial – Part 8: Routers
+# FastAPI Tutorial – Part 10: Authentication
 
-This part focuses on organizing a FastAPI application using **APIRouter**.
+Part 10: Authentication – Registration and Login with JWT.
 
-## Topics Covered
+## Topics
+- User registration
+- Secure password hashing with `pwdlib` and Argon2
+- Password verification
+- Pydantic Settings
+- `.env` configuration
+- `SecretStr`
+- JWT access tokens
+- HS256
+- Token expiration
+- Login and authentication flow
+- Swagger/Postman testing
 
-- What is `APIRouter`?
-- Why use routers?
-- Creating separate router files
-- Registering routers with `app.include_router()`
-- Router prefixes
-- Router tags
-- Organizing API endpoints
-- Keeping `main.py` clean
-
-## Typical Structure
-
+## Authentication Flow
 ```text
-project/
-├── main.py
-├── routers/
-│   ├── __init__.py
-│   ├── posts.py
-│   └── users.py
-├── templates/
-├── static/
-└── database.py
+Registration → validate data → hash password → store hash
+Login → verify credentials → create JWT → return access token
 ```
 
-## Basic Router
-
+## Settings
 ```python
-from fastapi import APIRouter
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-router = APIRouter()
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
-@router.get("/posts")
-def get_posts():
-    return {"message": "All posts"}
+    secret_key: SecretStr
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+
+settings = Settings()
 ```
 
-Register it in `main.py`:
-
-```python
-from fastapi import FastAPI
-from routers import posts
-
-app = FastAPI()
-
-app.include_router(posts.router)
+Example `.env`:
+```env
+SECRET_KEY=your-secret-key
 ```
 
-## Run
-
+Run:
 ```powershell
 ..\.venv\Scripts\activate
 fastapi dev main.py
 ```
-
-> This documentation is organized for your FastAPI tutorial workflow and focuses specifically on Routers.

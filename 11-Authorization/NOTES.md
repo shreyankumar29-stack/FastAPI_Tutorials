@@ -1,210 +1,131 @@
-# Part 8 – Routers Notes
+# Part 11 – Authorization Notes
 
-## 1. What is APIRouter?
+## 1. Authorization
+Authorization determines what an authenticated user is allowed to access or modify.
 
-`APIRouter` is used to group related FastAPI path operations.
+Example:
+```text
+User A owns Post 1
+User B owns Post 2
+```
+User A should not be allowed to edit User B's post.
 
-Instead of putting every endpoint inside `main.py`, routes can be separated into different files.
-
-```python
-from fastapi import APIRouter
-
-router = APIRouter()
+## 2. Bearer Token
+Protected requests normally send:
+```text
+Authorization: Bearer <access_token>
 ```
 
----
-
-## 2. Creating Routes
-
+## 3. OAuth2PasswordBearer
 ```python
-@router.get("/posts")
-def get_posts():
-    return {"message": "Get posts"}
-```
+from fastapi.security import OAuth2PasswordBearer
 
-Another route:
-
-```python
-@router.post("/posts")
-def create_post():
-    return {"message": "Create post"}
-```
-
----
-
-## 3. Registering a Router
-
-The router must be included in the main FastAPI application.
-
-```python
-from fastapi import FastAPI
-from routers import posts
-
-app = FastAPI()
-
-app.include_router(posts.router)
-```
-
-If a router is not included, FastAPI will not register its routes.
-
----
-
-## 4. Router Prefix
-
-A prefix can be added when registering a router.
-
-```python
-app.include_router(
-    posts.router,
-    prefix="/api"
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/auth/login"
 )
 ```
 
-A route:
-
-```python
-@router.get("/posts")
-```
-
-will then be available at:
-
+## 4. Dependency Chain
 ```text
-/api/posts
+Request
+ ↓
+Bearer token
+ ↓
+Decode/validate JWT
+ ↓
+Find user
+ ↓
+Current user
+ ↓
+Protected route
 ```
 
----
+## 5. Current User
+A `get_current_user()` dependency can:
+1. Receive the bearer token.
+2. Decode and validate the JWT.
+3. Extract the user identity.
+4. Find the database user.
+5. Return the current user.
 
-## 5. Router Tags
-
-Tags organize endpoints in Swagger/OpenAPI.
-
+Concept:
 ```python
-app.include_router(
-    posts.router,
-    prefix="/api",
-    tags=["Posts"]
-)
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    # decode token
+    # find user
+    # return user
+    ...
 ```
 
-Swagger will group these endpoints under the `Posts` tag.
+## 6. Protecting Routes
+```python
+@app.get("/account")
+async def account(
+    current_user: User = Depends(get_current_user)
+):
+    return current_user
+```
 
----
+## 7. Ownership Checks
+```python
+if post.user_id != current_user.id:
+    raise HTTPException(
+        status_code=403,
+        detail="Not authorized to perform this action"
+    )
+```
 
-## 6. Separate Routers
+Use the same concept for update/delete operations.
 
-A larger application can have different routers.
+## 8. Remove Hardcoded IDs
+Avoid:
+```python
+if post.user_id == 1:
+```
+Use:
+```python
+if post.user_id != current_user.id:
+```
 
+## 9. Status Codes
+- `401` → missing/invalid authentication credentials
+- `403` → authenticated but not permitted
+
+## 10. Authorization Flow
 ```text
-routers/
-├── posts.py
-├── users.py
-└── auth.py
+Login → JWT
+      ↓
+Bearer token
+      ↓
+JWT validation
+      ↓
+Current user
+      ↓
+Permission/ownership check
+      ↓
+Allow or reject
 ```
 
-Example `users.py`:
-
-```python
-from fastapi import APIRouter
-
-router = APIRouter()
-
-@router.get("/users")
-def get_users():
-    return {"message": "All users"}
-```
-
-Then:
-
-```python
-from routers import posts, users
-
-app.include_router(posts.router)
-app.include_router(users.router)
-```
-
----
-
-## 7. Why Routers?
-
-Without routers:
-
+## Testing
+Without token:
 ```text
-main.py
-└── hundreds of endpoints
+Authorization header missing → protected request rejected
 ```
 
-With routers:
-
+With token:
 ```text
-main.py
-routers/
-├── posts.py
-├── users.py
-└── auth.py
+Authorization: Bearer <access_token>
 ```
 
-This makes the project easier to maintain.
-
----
-
-## 8. Router Dependencies
-
-Routers can also have shared dependencies.
-
-```python
-router = APIRouter(
-    prefix="/posts",
-    tags=["Posts"]
-)
+Wrong owner:
+```text
+Valid user + another user's post → reject with authorization error
 ```
-
-This avoids repeating the same configuration on every route.
-
----
-
-## 9. Important Concept
-
-`APIRouter` does **not** create a second FastAPI application.
-
-It creates a group of routes that are later included in the main `FastAPI()` application.
-
----
-
-## Common Mistakes
-
-### Forgetting the import
-
-```python
-from fastapi import APIRouter
-```
-
-### Forgetting to include the router
-
-```python
-app.include_router(posts.router)
-```
-
-### Wrong router variable
-
-If the router file contains:
-
-```python
-router = APIRouter()
-```
-
-then use:
-
-```python
-app.include_router(posts.router)
-```
-
----
 
 ## Key Takeaways
-
-- `APIRouter()` groups related endpoints.
-- Routes can be moved out of `main.py`.
-- `include_router()` registers them with the application.
-- `prefix` adds a common URL prefix.
-- `tags` organizes Swagger documentation.
-- Routers improve project structure and maintainability.
+- Authentication identifies the user.
+- Authorization controls permissions.
+- `Depends()` connects security dependencies to routes.
+- `get_current_user()` identifies the authenticated user.
+- Ownership checks protect user resources.
+- Hardcoded user IDs should be removed.

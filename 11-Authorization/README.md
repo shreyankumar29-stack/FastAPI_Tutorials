@@ -1,60 +1,52 @@
-# FastAPI Tutorial – Part 8: Routers
+# FastAPI Tutorial – Part 11: Authorization
 
-This part focuses on organizing a FastAPI application using **APIRouter**.
+Part 11: Authorization – Protecting Routes and Verifying the Current User.
 
-## Topics Covered
+## Topics
+- Authorization
+- Protected routes
+- Bearer tokens
+- `OAuth2PasswordBearer`
+- JWT validation
+- Current-user dependency
+- `Depends()`
+- Ownership checks
+- Removing hardcoded user IDs
+- Protecting edit/delete operations
+- Account/profile concepts
 
-- What is `APIRouter`?
-- Why use routers?
-- Creating separate router files
-- Registering routers with `app.include_router()`
-- Router prefixes
-- Router tags
-- Organizing API endpoints
-- Keeping `main.py` clean
-
-## Typical Structure
-
+## Authentication vs Authorization
 ```text
-project/
-├── main.py
-├── routers/
-│   ├── __init__.py
-│   ├── posts.py
-│   └── users.py
-├── templates/
-├── static/
-└── database.py
+Authentication → Who are you?
+Authorization  → What are you allowed to do?
 ```
 
-## Basic Router
-
+## Protected Route
 ```python
-from fastapi import APIRouter
-
-router = APIRouter()
-
-@router.get("/posts")
-def get_posts():
-    return {"message": "All posts"}
+@app.get("/protected")
+async def protected_route(
+    current_user: User = Depends(get_current_user)
+):
+    return current_user
 ```
 
-Register it in `main.py`:
-
+## Ownership
+Instead of:
 ```python
-from fastapi import FastAPI
-from routers import posts
-
-app = FastAPI()
-
-app.include_router(posts.router)
+if post.user_id == 1:
 ```
 
-## Run
+use the authenticated user:
+```python
+if post.user_id != current_user.id:
+    raise HTTPException(
+        status_code=403,
+        detail="Not authorized to perform this action"
+    )
+```
 
+Run:
 ```powershell
 ..\.venv\Scripts\activate
 fastapi dev main.py
 ```
-
-> This documentation is organized for your FastAPI tutorial workflow and focuses specifically on Routers.

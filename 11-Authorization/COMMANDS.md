@@ -1,11 +1,26 @@
-# Part 11 – Commands
+# Part 10 – Commands
 
 ## Activate venv
 ```powershell
 ..\.venv\Scripts\activate
 ```
 
-## Run FastAPI
+## Install settings
+```powershell
+pip install pydantic-settings
+```
+
+## Install password hashing with Argon2
+```powershell
+pip install "pwdlib[argon2]"
+```
+
+## Install JWT support
+```powershell
+pip install PyJWT
+```
+
+## Run
 ```powershell
 fastapi dev main.py
 ```
@@ -13,6 +28,14 @@ fastapi dev main.py
 ## Check packages
 ```powershell
 pip list
+pip show pwdlib
+pip show pydantic-settings
+pip show PyJWT
+```
+
+## Create .env
+```powershell
+New-Item .env -ItemType File
 ```
 
 ## Save dependencies
@@ -20,21 +43,8 @@ pip list
 pip freeze > requirements.txt
 ```
 
-## Open Swagger
+## Test endpoints
 ```text
-http://localhost:8000/docs
-```
-
-## Postman – Bearer Token
-Authorization → Type: Bearer Token → Token: `<access_token>`
-
-## curl – protected route
-```powershell
-curl http://localhost:8000/api/protected
-```
-
-## curl – with bearer token
-```powershell
-curl http://localhost:8000/api/protected `
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+POST http://localhost:8000/api/users
+POST http://localhost:8000/api/auth/login
 ```

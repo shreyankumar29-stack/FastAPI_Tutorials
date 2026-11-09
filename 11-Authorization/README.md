@@ -1,48 +1,47 @@
-# FastAPI Tutorial – Part 11: Authorization
+# FastAPI Tutorial – Part 10: Authentication
 
-Part 11: Authorization – Protecting Routes and Verifying the Current User.
+Part 10: Authentication – Registration and Login with JWT.
 
 ## Topics
-- Authorization
-- Protected routes
-- Bearer tokens
-- `OAuth2PasswordBearer`
-- JWT validation
-- Current-user dependency
-- `Depends()`
-- Ownership checks
-- Removing hardcoded user IDs
-- Protecting edit/delete operations
-- Account/profile concepts
+- User registration
+- Secure password hashing with `pwdlib` and Argon2
+- Password verification
+- Pydantic Settings
+- `.env` configuration
+- `SecretStr`
+- JWT access tokens
+- HS256
+- Token expiration
+- Login and authentication flow
+- Swagger/Postman testing
 
-## Authentication vs Authorization
+## Authentication Flow
 ```text
-Authentication → Who are you?
-Authorization  → What are you allowed to do?
+Registration → validate data → hash password → store hash
+Login → verify credentials → create JWT → return access token
 ```
 
-## Protected Route
+## Settings
 ```python
-@app.get("/protected")
-async def protected_route(
-    current_user: User = Depends(get_current_user)
-):
-    return current_user
-```
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-## Ownership
-Instead of:
-```python
-if post.user_id == 1:
-```
-
-use the authenticated user:
-```python
-if post.user_id != current_user.id:
-    raise HTTPException(
-        status_code=403,
-        detail="Not authorized to perform this action"
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
     )
+
+    secret_key: SecretStr
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+
+settings = Settings()
+```
+
+Example `.env`:
+```env
+SECRET_KEY=your-secret-key
 ```
 
 Run:

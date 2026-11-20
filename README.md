@@ -35,9 +35,7 @@ The course will gradually cover:
 * JWT
 * Dependency injection
 * Error handling
-* API testing
-* Project structure
-* Deployment concepts
+
 
 ---
 

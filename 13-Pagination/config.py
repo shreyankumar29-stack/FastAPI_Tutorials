@@ -14,6 +14,8 @@ class Settings(BaseSettings):
 
     max_upload_size_bytes: int = 5 * 1024 * 1024  # 5 MB
 
+    posts_per_page: int = 10  # Number of posts to display per page
+    
 settings = Settings()  #type :ignore[call-arg]
 # Loaded from .env file
 
